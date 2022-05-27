@@ -18,6 +18,7 @@ func initVideos() {
 		// 通过user_refer 查找用户信息
 		user, exist := FindUserByID(video.UserRefer)
 		if !exist {
+			fmt.Println("User not exist!")
 			user = DemoUser
 		}
 		comments := GetComments(video.ID)

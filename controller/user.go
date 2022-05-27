@@ -68,9 +68,7 @@ func Login(c *gin.Context) {
 
 // 查找用户
 func UserInfo(c *gin.Context) {
-	fmt.Println("Checking.....")
 	token := c.Query("token")
-	fmt.Print("Token:", token)
 	// 首先根据token查找到用户ID
 	if user, exits := FindUserInfo(token); exits {
 		c.JSON(http.StatusOK, UserResponse{

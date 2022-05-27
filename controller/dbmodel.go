@@ -17,8 +17,7 @@ type Response struct {
 }
 
 type VideoSample struct {
-	ID            uint           `gorm:"primaryKey"`
-	VideoId       int64          `json:"id,omitempty"`
+	ID            uint           `gorm:"primaryKey" json:"id,omitempty"`
 	CreatedAt     time.Time      `json:"created_at,omitempty"`
 	UpdatedAt     time.Time      `json:"created_at,omitempty"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -181,25 +180,31 @@ func DeleteComment(comment_id int) {
 }
 
 // 添加Video
-func AddVideo(token string, videoname string) error {
+func AddVideo(token string, videoname string) (VideoSample, error) {
 	// 首先根据token查找到用户ID
 	user, exits := FindUserInfo(token)
 	if !exits {
-		return errors.New("User doesn't exits!")
+		return VideoSample{}, errors.New("User doesn't exits!")
 	}
 	new_video := VideoSample{
-		PlayUrl:  BaseURL + "static/" + videoname,
-		CoverUrl: BaseURL + "static/" + videoname + ".jpg",
+		PlayUrl:    BaseURL + "static/" + videoname,
+		CoverUrl:   BaseURL + "static/" + videoname + ".jpg",
+		IsFavorite: false,
 	}
 	videos := []VideoSample{}
 	result := db.Where("user_refer = ?", user.ID).Find(&videos)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return result.Error
+		return VideoSample{}, result.Error
 	}
 	videos = append(videos, new_video)
 	db.Model(&user).Update("Public", videos)
+	// 再次查找
+	result = db.Where("user_refer = ?", user.ID).Find(&videos)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return VideoSample{}, result.Error
+	}
 
-	return nil
+	return videos[len(videos)-1], nil
 }
 
 // 删除视频
@@ -213,6 +218,13 @@ func FindVideo(video_id int) VideoSample {
 	video := VideoSample{}
 	db.Where("ID = ?", video_id).First(&video)
 	return video
+}
+
+// 通过user_refer查找video
+func FindUsersVideos(user_id uint) []VideoSample {
+	videos := []VideoSample{}
+	db.Where("user_refer = ?", user_id).Find(&videos)
+	return videos
 }
 
 // 更新video
@@ -237,7 +249,7 @@ func GetComments(video_id uint) []Comment {
 //
 func GetUsersBriefInfo() []User {
 	users := []User{}
-	db.Select("Name", "Password", "LikeVideosID").Find(&users)
+	db.Select("ID", "Name", "Password", "LikeVideosID", "FollowCount", "FollowerCount", "FollowID", "FollowerID").Find(&users)
 	return users
 }
 
