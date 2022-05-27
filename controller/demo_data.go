@@ -2,7 +2,7 @@ package controller
 
 import "fmt"
 
-var BaseURL = "http://192.168.137.1:8080/"
+var BaseURL = "http://218.194.50.92:8080/"
 var DemoVideos = []Video{}
 var VideosBuffer = map[uint]int{}
 var CommentsMap = map[uint][]Comment{}

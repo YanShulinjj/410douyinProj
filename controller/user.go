@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +24,7 @@ type UserResponse struct {
 }
 
 // 注册新用户
+
 func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
@@ -44,6 +46,7 @@ func Register(c *gin.Context) {
 }
 
 // 用户登陆
+
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
@@ -67,10 +70,14 @@ func Login(c *gin.Context) {
 }
 
 // 查找用户
+
 func UserInfo(c *gin.Context) {
+
 	token := c.Query("token")
-	// 首先根据token查找到用户ID
-	if user, exits := FindUserInfo(token); exits {
+	split := strings.Split(token, "_")
+	username := split[0]
+	if user, exits := FindUserName(username); exits {
+
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0},
 			User:     user,

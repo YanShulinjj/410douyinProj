@@ -3,58 +3,15 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"strings"
-	"time"
-
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"strings"
 )
 
 type Response struct {
 	StatusCode int32  `json:"status_code"`
 	StatusMsg  string `json:"status_msg,omitempty"`
-}
-
-type VideoSample struct {
-	ID            uint           `gorm:"primaryKey" json:"id,omitempty"`
-	CreatedAt     time.Time      `json:"created_at,omitempty"`
-	UpdatedAt     time.Time      `json:"created_at,omitempty"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-	PlayUrl       string         `json:"play_url" json:"play_url,omitempty"`
-	CoverUrl      string         `json:"cover_url,omitempty"`
-	FavoriteCount int64          `json:"favorite_count,omitempty"`
-	CommentCount  int64          `json:"comment_count,omitempty"`
-	Comments      *[]Comment     `gorm:"foreignKey:VideoRefer"`
-	IsFavorite    bool           `json:"is_favorite,omitempty"`
-	UserRefer     uint           `json:"author"`
-}
-
-type Comment struct {
-	ID         uint           `gorm:"primaryKey" json:"id,omitempty"`
-	CreatedAt  time.Time      `json:"created_at,omitempty"`
-	UpdatedAt  time.Time      `json:"created_at,omitempty"`
-	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-	Content    string         `json:"content,omitempty"`
-	CreateDate string         `json:"create_date,omitempty"`
-	VideoRefer uint           `json:"video_refer,omitempty"`
-	UserId     uint           `json:"user_id,omitempty"`
-}
-
-type User struct {
-	ID            uint           `gorm:"primaryKey" json:"id,omitempty"`
-	CreatedAt     time.Time      `json:"created_at,omitempty"`
-	UpdatedAt     time.Time      `json:"created_at,omitempty"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-	Name          string         `json:"name,omitempty"`
-	Password      string         `json:"password,omitempty"`
-	FollowCount   int64          `json:"follow_count,omitempty"`
-	FollowerCount int64          `json:"follower_count,omitempty"`
-	FollowID      string         `json:"follow_id,omitempty"`
-	FollowerID    string         `json:"follower_id,omitempty"`
-	IsFollow      bool           `json:"is_follow,omitempty"`
-	LikeVideosID  string         `json:"like_videos,omitempty"`
-	Public        *[]VideoSample `gorm:"foreignKey:UserRefer" json:"video,omitempty"`
 }
 
 var db *gorm.DB
@@ -68,8 +25,17 @@ func init() {
 
 // Init DataSet
 func ConnectDataBase() (*gorm.DB, error) {
-	dsn := "root:19990221@tcp(127.0.0.1:3306)/golang_mysql?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		DSN:                       "root:1002@tcp(127.0.0.1:3306)/douyin?charset=utf8mb4&parseTime=True&loc=Local", // DSN data source name
+		DefaultStringSize:         256,                                                                             // string 类型字段的默认长度
+		DisableDatetimePrecision:  true,                                                                            // 禁用 datetime 精度，MySQL 5.6 之前的数据库不支持
+		DontSupportRenameIndex:    true,                                                                            // 重命名索引时采用删除并新建的方式，MySQL 5.7 之前的数据库和 MariaDB 不支持重命名索引
+		DontSupportRenameColumn:   true,                                                                            // 用 `change` 重命名列，MySQL 8 之前的数据库和 MariaDB 不支持重命名列
+		SkipInitializeWithVersion: false,                                                                           // 根据当前 MySQL 版本自动配置
+	}), &gorm.Config{
+		SkipDefaultTransaction:                   false,
+		DisableForeignKeyConstraintWhenMigrating: true, //建表的时候不会建立物理外键。 主张逻辑外键 (代码里面自动体现外键关系)
+	})
 	if err != nil {
 		fmt.Println(err)
 		panic("Can't connect DataBase!")
@@ -78,6 +44,7 @@ func ConnectDataBase() (*gorm.DB, error) {
 }
 
 // 查找用户名
+
 func FindUserName(username string) (User, bool) {
 	user := User{}
 	result := db.Where("name = ?", username).First(&user)
@@ -90,6 +57,7 @@ func FindUserName(username string) (User, bool) {
 }
 
 // 从用户信息查找
+
 func FindUserInfo(token string) (User, bool) {
 
 	fmt.Println("TOKEN: ", token)
@@ -100,6 +68,7 @@ func FindUserInfo(token string) (User, bool) {
 
 	user := User{}
 	result := db.Where("name = ? AND password = ? ", username, password).First(&user)
+
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return User{}, false
 	}
@@ -107,6 +76,7 @@ func FindUserInfo(token string) (User, bool) {
 }
 
 // 通过id查找用户
+
 func FindUserByID(id uint) (User, bool) {
 	user := User{}
 	result := db.Select("ID", "Name", "FollowCount", "FollowerCount", "IsFollow").Where("ID = ?", id).First(&user)
@@ -117,11 +87,13 @@ func FindUserByID(id uint) (User, bool) {
 }
 
 // 更新用户
+
 func UpdateUser(user User) {
 	db.Model(&user).Updates(user)
 }
 
 // 添加用户信息
+
 func AddUserInfo(username string, password string) (uint, error) {
 	// db.AutoMigrate(&User{})
 	// 向数据库中插入一条数据
@@ -137,6 +109,7 @@ func AddUserInfo(username string, password string) (uint, error) {
 }
 
 // 删除用户
+
 func DeleteUser(token string) error {
 	split := strings.Split(token, "&")
 	username, password := split[0], split[1]
@@ -150,6 +123,7 @@ func DeleteUser(token string) error {
 }
 
 // 添加评论
+
 func AddComment(token string, video_id uint, content string) (Comment, error) {
 	db.AutoMigrate(&Comment{})
 	// 首先根据token查找到用户ID
@@ -175,11 +149,13 @@ func AddComment(token string, video_id uint, content string) (Comment, error) {
 }
 
 // 删除评论
+
 func DeleteComment(comment_id int) {
 	db.Delete(&Comment{}, comment_id)
 }
 
 // 添加Video
+
 func AddVideo(token string, videoname string) (VideoSample, error) {
 	// 首先根据token查找到用户ID
 	user, exits := FindUserInfo(token)
@@ -208,12 +184,14 @@ func AddVideo(token string, videoname string) (VideoSample, error) {
 }
 
 // 删除视频
+
 func DeleteVideo(video_id int) {
 	video := FindVideo(video_id)
 	db.Select("Comments").Delete(&video)
 }
 
 // 查找video
+
 func FindVideo(video_id int) VideoSample {
 	video := VideoSample{}
 	db.Where("ID = ?", video_id).First(&video)
@@ -221,6 +199,7 @@ func FindVideo(video_id int) VideoSample {
 }
 
 // 通过user_refer查找video
+
 func FindUsersVideos(user_id uint) []VideoSample {
 	videos := []VideoSample{}
 	db.Where("user_refer = ?", user_id).Find(&videos)
@@ -228,11 +207,13 @@ func FindUsersVideos(user_id uint) []VideoSample {
 }
 
 // 更新video
+
 func Update(video Video) {
 	db.Model(&video).Updates(video)
 }
 
 // 返回video列表
+
 func GetVideos() []VideoSample {
 	videos := []VideoSample{}
 	db.Order("ID desc").Find(&videos)
@@ -240,6 +221,7 @@ func GetVideos() []VideoSample {
 }
 
 // 返回指定视频的comment列表
+
 func GetComments(video_id uint) []Comment {
 	comments := []Comment{}
 	db.Where("video_refer = ? ", video_id).Find(&comments)
