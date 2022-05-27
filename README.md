@@ -6,14 +6,14 @@
 
 > 需要安装[FFmpeg](http://ffmpeg.org/download.html),   并修改controller/publish.go  row: 47 的ffmpeg路径
 >
-<<<<<<< HEAD
 > 需要安装MySQL，并创建golang_mysql 数据库， 并修改dbmodel.go 文件中连接mysql的账户和密码
-
-=======
+>
 > 需要安装MySQL，并创建golang_mysql 数据库
 > 
 > 需要修改BaseURL.
->>>>>>> 95911ffeae214caea9be587255c3079ae83f5fbc
+>
+> 需要自己新建 public 文件夹
+
 执行以下命令运行服务端程序
 
 ```shell
