@@ -8,7 +8,6 @@
 >
 > 需要安装MySQL，并创建golang_mysql 数据库， 并修改dbmodel.go 文件中连接mysql的账户和密码
 >
-> 需要安装MySQL，并创建golang_mysql 数据库
 > 
 > 需要修改BaseURL.
 >
