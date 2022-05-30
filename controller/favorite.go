@@ -23,30 +23,30 @@ func initFavorite() {
 		// 解析user.LikeVideosID
 		vids := strings.Split(user.LikeVideosID, ".")[1:]
 		for _, vid := range vids {
-			fmt.Println("*******?????******", vid)
-			vs := VID2Video(vid)
+			vs := VID2Video(vid, true)
 			UserFavoriteListMap[user.Name+"_"+user.Password] = append(UserFavoriteListMap[user.Name+"_"+user.Password], vs)
 		}
 	}
 }
 
 // 根据video_id 转成 Video对象
-func VID2Video(video_id string) Video {
+func VID2Video(video_id string, init bool) Video {
 	fmt.Println(video_id)
 	vid, err := strconv.Atoi(video_id)
 	if err != nil {
-		fmt.Println("*****Get video_id faild! ", err)
 		return Video{}
 	}
 	video := FindVideo(vid)
 	DemoVideos[VideosBuffer[uint(vid)]].FavoriteCount += 1
-	DemoVideos[VideosBuffer[uint(vid)]].IsFavorite = true
+	if init {
+		DemoVideos[VideosBuffer[uint(vid)]].IsFavorite = false
+	} else {
+		DemoVideos[VideosBuffer[uint(vid)]].IsFavorite = true
+	}
+
 	// 查找作者
 	author, exist := FindUserByID(video.UserRefer)
 	if !exist {
-		fmt.Println(video_id, vid)
-		fmt.Println(video)
-		fmt.Println("video.UserRefer = ", video.UserRefer, "not exist! ")
 		panic("User not extis !")
 	}
 	vs := Video{
@@ -69,6 +69,7 @@ func FavoriteAction(c *gin.Context) {
 	vid, err := strconv.Atoi(video_id_str)
 	if err != nil {
 		fmt.Println("Get video_id faild! ", err)
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "Get video_id faild! "})
 	}
 	if user, exist := FindUserInfo(token); exist {
 
@@ -76,6 +77,7 @@ func FavoriteAction(c *gin.Context) {
 			DemoVideos[VideosBuffer[uint(vid)]].IsFavorite = false
 			DemoVideos[VideosBuffer[uint(vid)]].FavoriteCount -= 1
 			// 删除
+			fmt.Println("UserID: ", token, "在喜欢VideoID: ", vid)
 			del_idx := -1
 			for _, video := range UserFavoriteListMap[token] {
 				del_idx++
@@ -84,13 +86,13 @@ func FavoriteAction(c *gin.Context) {
 				}
 			}
 			// 从喜欢列表中移除
-			if del_idx < len(UserFavoriteListMap[token]) {
+			if del_idx > -1 && del_idx < len(UserFavoriteListMap[token]) {
 				UserFavoriteListMap[token] = append(UserFavoriteListMap[token][:del_idx], UserFavoriteListMap[token][del_idx+1:]...)
+				vids := strings.Split(user.LikeVideosID, ".")[1:]
+				vids = append(vids[:del_idx], vids[del_idx+1:]...)
+				vids_str := "." + strings.Join(vids, ".")
+				user.LikeVideosID = vids_str
 			}
-			vids := strings.Split(user.LikeVideosID, ".")[1:]
-			vids = append(vids[:del_idx], vids[del_idx+1:]...)
-			vids_str := "." + strings.Join(vids, ".")
-			user.LikeVideosID = vids_str
 			// 更新到数据库
 			UpdateUser(user)
 			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "从喜欢列表移除！"})
@@ -99,19 +101,15 @@ func FavoriteAction(c *gin.Context) {
 			user.LikeVideosID = user.LikeVideosID + "." + video_id_str
 			UpdateUser(user)
 			// 更新Map
-			vs := VID2Video(video_id_str)
-			fmt.Println("Like:", vs)
+			vs := VID2Video(video_id_str, false)
 			UserFavoriteListMap[token] = append(UserFavoriteListMap[token], vs)
-			fmt.Println(UserFavoriteListMap[token])
 			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "成功加入喜欢列表！"})
 		}
-		//Feed()
 	} else {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 	}
 }
 
-// FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
 	token := c.Query("token")
 	fmt.Println(UserFavoriteListMap[token])

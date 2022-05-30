@@ -1,6 +1,10 @@
 package controller
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 var BaseURL = "http://192.168.137.1:8080/"
 var DemoVideos = []Video{}
@@ -32,6 +36,14 @@ func initVideos() {
 			CommentCount:  int64(len(comments)),
 			IsFavorite:    false,
 		}
+		// 查找User的likeID 是否包含此视频
+		vids := strings.Split(user.LikeVideosID, ".")[1:]
+		for _, vid := range vids {
+			if vid == strconv.Itoa(int(video.ID)) {
+				vs.IsFavorite = true
+				break
+			}
+		}
 		VideosBuffer[video.ID] = i
 		DemoVideos = append(DemoVideos, vs)
 	}
@@ -43,5 +55,3 @@ var DemoUser = User{
 	Name:     "TestUser",
 	IsFollow: false,
 }
-
-// var VideoCommentsMap = map[int][]Comment{}

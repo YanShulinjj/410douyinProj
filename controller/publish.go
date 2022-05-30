@@ -96,10 +96,6 @@ func Publish(c *gin.Context) {
 
 	// 添加到自己发表的列表
 	UsePublishVideosMap[user.ID] = append([]Video{video}, UsePublishVideosMap[user.ID]...)
-	// save to file
-	// writeVideosFile("./data/videos")
-
-	// initVideos()
 
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
@@ -107,7 +103,6 @@ func Publish(c *gin.Context) {
 	})
 }
 
-// PublishList all users have same publish video list
 func PublishList(c *gin.Context) {
 	user_id, err := strconv.Atoi(c.Query("user_id"))
 	fmt.Println("USerPublish", UsePublishVideosMap[uint(user_id)])

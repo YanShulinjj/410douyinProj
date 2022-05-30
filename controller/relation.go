@@ -54,20 +54,69 @@ func RelationAction(c *gin.Context) {
 	}
 	if user, exist := FindUserInfo(token); exist {
 		follow, _ := FindUserByID(uint(to_user_id))
-		follow.IsFollow = true
-		// 更改缓冲区
-		UserFollowMap[user.ID] = append(UserFollowMap[user.ID], follow)
-		UserFollowCountMap[user.ID]++
+		// 如果还没关注
+		if !follow.IsFollow {
+			follow.IsFollow = true
+			// 更改缓冲区
+			UserFollowMap[user.ID] = append(UserFollowMap[user.ID], follow)
+			UserFollowCountMap[user.ID]++
 
-		UserFollowerMap[uint(to_user_id)] = append(UserFollowerMap[uint(to_user_id)], user)
-		UserFollowerCountMap[uint(to_user_id)]++
-		// 写入数据库
-		user.FollowCount++
-		user.FollowID += "." + strconv.Itoa(to_user_id)
-		UpdateUser(user)
-		follow.FollowerCount++
-		follow.FollowerID += "." + strconv.Itoa(int(user.ID))
-		UpdateUser(follow)
+			UserFollowerMap[uint(to_user_id)] = append(UserFollowerMap[uint(to_user_id)], user)
+			UserFollowerCountMap[uint(to_user_id)]++
+			// 写入数据库
+			user.FollowCount++
+			user.FollowID += "." + strconv.Itoa(to_user_id)
+			UpdateUser(user)
+			follow.FollowerCount++
+			follow.FollowerID += "." + strconv.Itoa(int(user.ID))
+			UpdateUser(follow)
+		} else {
+			fmt.Println("已经关注啦！！！！！！")
+			follow.IsFollow = false
+			// 更改缓冲区
+			// 找到
+			del_idx := -1
+			for _, u := range UserFollowMap[user.ID] {
+				del_idx++
+				if u.ID == follow.ID {
+					break
+				}
+			}
+			// 从关注列表中移除
+			if del_idx > -1 && del_idx < len(UserFollowMap[user.ID]) {
+				UserFollowMap[user.ID] = append(UserFollowMap[user.ID][:del_idx], UserFollowMap[user.ID][del_idx+1:]...)
+				UserFollowCountMap[user.ID]--
+				// 修改对象
+				uids := strings.Split(user.FollowID, ".")[1:]
+				uids = append(uids[:del_idx], uids[del_idx+1:]...)
+				uids_str := "." + strings.Join(uids, ".")
+				user.FollowID = uids_str
+			}
+
+			del_idx = -1
+			for _, u := range UserFollowerMap[follow.ID] {
+				del_idx++
+				if u.ID == user.ID {
+					break
+				}
+			}
+			// 从关注列表中移除
+			if -1 < del_idx && del_idx < len(UserFollowerMap[follow.ID]) {
+				UserFollowerMap[follow.ID] = append(UserFollowerMap[follow.ID][:del_idx], UserFollowerMap[follow.ID][del_idx+1:]...)
+				UserFollowerCountMap[follow.ID]--
+				// 修改对象
+				uids := strings.Split(follow.FollowerID, ".")[1:]
+				fmt.Println(uids)
+				uids = append(uids[:del_idx], uids[del_idx+1:]...)
+				uids_str := "." + strings.Join(uids, ".")
+				follow.FollowerID = uids_str
+			}
+
+			// 写入数据库
+			UpdateUser(user)
+			db.Model(&follow).Update("IsFollow", false)
+			// UpdateUser(follow)
+		}
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
 	} else {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
