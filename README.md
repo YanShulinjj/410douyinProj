@@ -12,6 +12,8 @@
 > 需要修改BaseURL.
 >
 > 需要自己新建 public 文件夹
+> 需要下载redis数据库
+> go get "github.com/go-redis/redis/v7"
 
 执行以下命令运行服务端程序
 
