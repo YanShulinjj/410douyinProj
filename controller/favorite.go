@@ -10,7 +10,7 @@ import (
 )
 
 // 用于存储用户点赞列表
-var UserFavoriteListMap = map[string][]Video{}
+//var UserFavoriteListMap = map[string][]Video{}
 
 func init() {
 	initFavorite()
@@ -18,6 +18,7 @@ func init() {
 
 func initFavorite() {
 	// 对于每一个用户，初始化其点赞列表
+	var UserFavoriteListMap = map[string][]Video{}
 	users := GetUsersBriefInfo()
 	for _, user := range users {
 		// 解析user.LikeVideosID
@@ -27,6 +28,7 @@ func initFavorite() {
 			UserFavoriteListMap[user.Name+"_"+user.Password] = append(UserFavoriteListMap[user.Name+"_"+user.Password], vs)
 		}
 	}
+	SaveUserFavoriteListMap(" UserFavoriteListMap", Client, UserFavoriteListMap)
 }
 
 // 根据video_id 转成 Video对象
@@ -37,6 +39,7 @@ func VID2Video(video_id string, init bool) Video {
 		return Video{}
 	}
 	video := FindVideo(vid)
+	VideosBuffer := GetVideosBuffer("VideosBuffer", Client)
 	DemoVideos[VideosBuffer[uint(vid)]].FavoriteCount += 1
 	if init {
 		DemoVideos[VideosBuffer[uint(vid)]].IsFavorite = false
@@ -49,6 +52,9 @@ func VID2Video(video_id string, init bool) Video {
 	if !exist {
 		panic("User not extis !")
 	}
+	var CommentsMap map[uint][]Comment
+	//从redis读取
+	CommentsMap = Getrediscomment("CommentsMap", Client)
 	vs := Video{
 		Id:            video.ID,
 		Author:        author,
@@ -71,6 +77,9 @@ func FavoriteAction(c *gin.Context) {
 		fmt.Println("Get video_id faild! ", err)
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "Get video_id faild! "})
 	}
+	//从redis中获取map
+	VideosBuffer := GetVideosBuffer("VideosBuffer", Client)
+	UserFavoriteListMap := GetUserFavoriteListMap("UserFavoriteListMap", Client)
 	if user, exist := FindUserInfo(token); exist {
 
 		if DemoVideos[VideosBuffer[uint(vid)]].IsFavorite {
@@ -112,6 +121,7 @@ func FavoriteAction(c *gin.Context) {
 
 func FavoriteList(c *gin.Context) {
 	token := c.Query("token")
+	UserFavoriteListMap := GetUserFavoriteListMap("UserFavoriteListMap", Client)
 	fmt.Println(UserFavoriteListMap[token])
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{

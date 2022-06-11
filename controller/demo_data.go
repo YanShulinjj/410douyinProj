@@ -2,20 +2,26 @@ package controller
 
 import (
 	"fmt"
+	"github.com/go-redis/redis/v7"
 	"strconv"
 	"strings"
 )
 
 var BaseURL = "http://192.168.137.1:8080/"
 var DemoVideos = []Video{}
-var VideosBuffer = map[uint]int{}
-var CommentsMap = map[uint][]Comment{}
+
+//var VideosBuffer = map[uint]int{}
+var Client *redis.Client
+
+//var CommentsMap = map[uint][]Comment{}
 
 func init() {
 	initVideos()
 }
 
 func initVideos() {
+	var VideosBuffer = map[uint]int{}
+	var CommentsMap = map[uint][]Comment{}
 	videos := GetVideos()
 	DemoVideos = []Video{}
 	for i, video := range videos {
@@ -47,6 +53,10 @@ func initVideos() {
 		VideosBuffer[video.ID] = i
 		DemoVideos = append(DemoVideos, vs)
 	}
+	//将CommentsMap VideosBuffer存入redis中
+	//Client = Connectredis()
+	Saverediscomment(" CommentsMap", Client, CommentsMap)
+	SaveVideosBuffer("VideosBuffer", Client, VideosBuffer)
 	fmt.Println("Num of videos: ", len(DemoVideos))
 }
 

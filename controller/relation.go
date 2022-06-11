@@ -9,16 +9,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var UserFollowMap = map[uint][]User{}
-var UserFollowerMap = map[uint][]User{}
-var UserFollowCountMap = map[uint]int64{}
-var UserFollowerCountMap = map[uint]int64{}
+//var UserFollowMap = map[uint][]User{}
+//var UserFollowerMap = map[uint][]User{}
+//var UserFollowCountMap = map[uint]int64{}
+//var UserFollowerCountMap = map[uint]int64{}
 
 func init() {
 	initMaps()
 }
 
 func initMaps() {
+	var UserFollowCountMap = map[uint]int64{}
+	var UserFollowMap = map[uint][]User{}
+	var UserFollowerMap = map[uint][]User{}
+	var UserFollowerCountMap = map[uint]int64{}
 	users := GetUsersBriefInfo()
 	for _, user := range users {
 		// 解析follow
@@ -36,6 +40,10 @@ func initMaps() {
 		UserFollowCountMap[user.ID] = user.FollowCount
 		UserFollowerCountMap[user.ID] = user.FollowerCount
 	}
+	SaveUserFollowMap("UserFollowMap", Client, UserFollowMap)
+	SaveUserFollowerMap("UserFollowerMap", Client, UserFollowMap)
+	SaveUserFollowCountMap("UserFollowCountMap", Client, UserFollowCountMap)
+	SaveUserFollowerCountMap("UserFollowerCountMap", Client, UserFollowerCountMap)
 }
 
 type UserListResponse struct {
@@ -52,13 +60,17 @@ func RelationAction(c *gin.Context) {
 		fmt.Println("Get user_id faild! ", err)
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "get user_id faile !"})
 	}
+	UserFollowMap := GetUserFollowMap("UserFollowMap", Client)
+	UserFollowerMap := GetUserFollowMap("UserFollowerMap", Client)
+	UserFollowCountMap := GetUserFollowCountMap("UserFollowCountMap", Client)
+	UserFollowerCountMap := GetUserFollowerCountMap("UserFollowerCountMap", Client)
 	if user, exist := FindUserInfo(token); exist {
-		follow, _ := FindUserByID(uint(to_user_id))
+		follow, _ := FindUserByID(uint(to_user_id)) //找到关注对象的信息
 		// 如果还没关注
 		if !follow.IsFollow {
 			follow.IsFollow = true
-			// 更改缓冲区
-			UserFollowMap[user.ID] = append(UserFollowMap[user.ID], follow)
+			// 更改缓冲区  对Map进行修改
+			UserFollowMap[user.ID] = append(UserFollowMap[user.ID], follow) //添加关注内容
 			UserFollowCountMap[user.ID]++
 
 			UserFollowerMap[uint(to_user_id)] = append(UserFollowerMap[uint(to_user_id)], user)
@@ -121,11 +133,16 @@ func RelationAction(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 	}
+	SaveUserFollowMap("UserFollowMap", Client, UserFollowMap)
+	SaveUserFollowerMap("UserFollowerMap", Client, UserFollowerMap)
+	SaveUserFollowCountMap("UserFollowCountMap", Client, UserFollowCountMap)
+	SaveUserFollowerCountMap("UserFollowerCountMap", Client, UserFollowerCountMap)
 }
 
 // FollowList all users have same follow list
 func FollowList(c *gin.Context) {
 	user_id, err := strconv.Atoi(c.Query("user_id"))
+	UserFollowMap := GetUserFollowMap("UserFollowMap", Client)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "get user_id faile !"})
 	}
@@ -144,6 +161,7 @@ func FollowerList(c *gin.Context) {
 		fmt.Println("Get user_id faild! ", err)
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "get user_id faile !"})
 	}
+	UserFollowerMap := GetUserFollowerMap("UserFollowerMap", Client)
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,

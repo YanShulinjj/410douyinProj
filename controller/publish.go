@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var UsePublishVideosMap = map[uint][]Video{}
+//var UsePublishVideosMap = map[uint][]Video{}
 
 func init() {
 	initPublishVideosMap()
@@ -18,6 +18,7 @@ func init() {
 
 func initPublishVideosMap() {
 	// 对于每一个用户，初始化其点赞列表
+	var UsePublishVideosMap = map[uint][]Video{}
 	users := GetUsersBriefInfo()
 	for _, user := range users {
 		videosamples := FindUsersVideos(user.ID)
@@ -34,6 +35,7 @@ func initPublishVideosMap() {
 			UsePublishVideosMap[user.ID] = append([]Video{video}, UsePublishVideosMap[user.ID]...)
 		}
 	}
+	SaveUsePublishVideosMap("UsePublishVideosMap", Client, UsePublishVideosMap)
 }
 
 type VideoListResponse struct {
@@ -71,7 +73,7 @@ func Publish(c *gin.Context) {
 		return
 	}
 	// 使用 ffmpeg 提取视频第1秒处的帧作为封面
-	cmd := exec.Command("E:/software/ffmpeg/bin/ffmpeg.exe", "-i", saveFile, "-ss", "00:00:01", filepath.Join("./public/", finalName+".jpg"))
+	cmd := exec.Command("C:\\software\\ffmpeg\\ffmpeg-master-latest-win64-gpl-shared\\bin\\ffmpeg.exe", "-i", saveFile, "-ss", "00:00:01", filepath.Join("./public/", finalName+".jpg"))
 	cmd.Run()
 	// update feed
 	fmt.Println("update feed videos....")
@@ -93,10 +95,13 @@ func Publish(c *gin.Context) {
 		IsFavorite:    false,
 	}
 	DemoVideos = append([]Video{video}, DemoVideos...)
+	//从redis获取UsePublishVideosMap
+	UsePublishVideosMap := GetUsePublishVideosMap("UsePublishVideosMap", Client)
 
 	// 添加到自己发表的列表
 	UsePublishVideosMap[user.ID] = append([]Video{video}, UsePublishVideosMap[user.ID]...)
-
+	//在redis中保存UsePublishVideosMap
+	SaveUsePublishVideosMap("UsePublishVideosMap", Client, UsePublishVideosMap)
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
 		StatusMsg:  finalName + " uploaded successfully",
@@ -105,6 +110,7 @@ func Publish(c *gin.Context) {
 
 func PublishList(c *gin.Context) {
 	user_id, err := strconv.Atoi(c.Query("user_id"))
+	UsePublishVideosMap := GetUsePublishVideosMap("UsePublishVideosMap", Client)
 	fmt.Println("USerPublish", UsePublishVideosMap[uint(user_id)])
 	if err != nil {
 		fmt.Println("Get user_id faild! ", err)
