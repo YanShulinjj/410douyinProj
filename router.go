@@ -1,10 +1,9 @@
 package main
 
 import (
-	"path"
-
 	"github.com/RaymondCode/simple-demo/controller"
 	"github.com/gin-gonic/gin"
+	"path"
 )
 
 func initRouter(r *gin.Engine) {
@@ -37,10 +36,10 @@ func initRouter(r *gin.Engine) {
 
 }
 func DowFile(c *gin.Context) {
-	//通过动态路由方式获取文件名，以实现下载不同文件的功能
+	// 通过动态路由方式获取文件名，以实现下载不同文件的功能
 	name := c.Param("name")
-	//拼接路径,如果没有这一步，则默认在当前路径下寻找
+	// 拼接路径,如果没有这一步，则默认在当前路径下寻找
 	filename := path.Join("./public/", name)
-	//响应一个文件
+	// 响应一个文件
 	c.File(filename)
 }

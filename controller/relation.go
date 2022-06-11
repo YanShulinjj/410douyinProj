@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/mylog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,7 +27,7 @@ func initMaps() {
 		for _, fuid := range fuids {
 			fid, err := strconv.Atoi(fuid)
 			if err != nil {
-				fmt.Println("*****Get video_id faild! ", err)
+				mylog.Logger.Printf("user_id = [%s] transform failed! %s\n", fuid, err)
 				continue
 			}
 			follow, _ := FindUserByID(uint(fid))
@@ -36,6 +37,7 @@ func initMaps() {
 		UserFollowCountMap[user.ID] = user.FollowCount
 		UserFollowerCountMap[user.ID] = user.FollowerCount
 	}
+	mylog.Logger.Println("Initlize: RelationsMap....")
 }
 
 type UserListResponse struct {
@@ -47,15 +49,21 @@ type UserListResponse struct {
 // 将对方用户添加到自身列表
 func RelationAction(c *gin.Context) {
 	token := c.Query("token")
+	action_type := c.Query("action_type")
 	to_user_id, err := strconv.Atoi(c.Query("to_user_id"))
 	if err != nil {
-		fmt.Println("Get user_id faild! ", err)
+		mylog.Logger.Println("Get Video_id faild!")
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "get user_id faile !"})
 	}
 	if user, exist := FindUserInfo(token); exist {
+		if user.ID == uint(to_user_id) {
+			// 自己不能关注自己
+			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "不能关注自己!"})
+		}
 		follow, _ := FindUserByID(uint(to_user_id))
-		// 如果还没关注
-		if !follow.IsFollow {
+
+		if action_type == "1" {
+			// 关注
 			follow.IsFollow = true
 			// 更改缓冲区
 			UserFollowMap[user.ID] = append(UserFollowMap[user.ID], follow)
@@ -63,6 +71,7 @@ func RelationAction(c *gin.Context) {
 
 			UserFollowerMap[uint(to_user_id)] = append(UserFollowerMap[uint(to_user_id)], user)
 			UserFollowerCountMap[uint(to_user_id)]++
+			mylog.Logger.Printf("User:[user_id=%d] followed User:[user_id=%d]\n", user.ID, to_user_id)
 			// 写入数据库
 			user.FollowCount++
 			user.FollowID += "." + strconv.Itoa(to_user_id)
@@ -71,10 +80,10 @@ func RelationAction(c *gin.Context) {
 			follow.FollowerID += "." + strconv.Itoa(int(user.ID))
 			UpdateUser(follow)
 		} else {
-			fmt.Println("已经关注啦！！！！！！")
+			// 取消关注
+			// fmt.Println("已经关注啦！！！！！！")
 			follow.IsFollow = false
 			// 更改缓冲区
-			// 找到
 			del_idx := -1
 			for _, u := range UserFollowMap[user.ID] {
 				del_idx++
@@ -111,11 +120,11 @@ func RelationAction(c *gin.Context) {
 				uids_str := "." + strings.Join(uids, ".")
 				follow.FollowerID = uids_str
 			}
-
+			mylog.Logger.Printf("User:[user_id=%d] canceled following User:[user_id=%d]\n", user.ID, to_user_id)
 			// 写入数据库
 			UpdateUser(user)
 			db.Model(&follow).Update("IsFollow", false)
-			// UpdateUser(follow)
+			UpdateUser(follow)
 		}
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
 	} else {
@@ -123,10 +132,11 @@ func RelationAction(c *gin.Context) {
 	}
 }
 
-// FollowList all users have same follow list
+/* 展示粉丝列表 */
 func FollowList(c *gin.Context) {
 	user_id, err := strconv.Atoi(c.Query("user_id"))
 	if err != nil {
+		mylog.Logger.Printf("Get user_id = [%d] failed! %s\n", user_id, err)
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "get user_id faile !"})
 	}
 	c.JSON(http.StatusOK, UserListResponse{
@@ -137,11 +147,10 @@ func FollowList(c *gin.Context) {
 	})
 }
 
-// FollowerList all users have same follower list
 func FollowerList(c *gin.Context) {
 	user_id, err := strconv.Atoi(c.Query("user_id"))
 	if err != nil {
-		fmt.Println("Get user_id faild! ", err)
+		mylog.Logger.Printf("Get user_id = [%d] failed! %s\n", user_id, err)
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "get user_id faile !"})
 	}
 	c.JSON(http.StatusOK, UserListResponse{

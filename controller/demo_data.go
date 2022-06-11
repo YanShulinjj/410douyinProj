@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"fmt"
+	"github.com/RaymondCode/simple-demo/mylog"
 	"strconv"
 	"strings"
 )
@@ -22,8 +22,8 @@ func initVideos() {
 		// 通过user_refer 查找用户信息
 		user, exist := FindUserByID(video.UserRefer)
 		if !exist {
-			fmt.Println("User not exist!")
-			user = DemoUser
+			// fmt.Println("User not exist!")
+			mylog.Logger.Panicf("User: [user_id = %d] is not exist!", video.UserRefer)
 		}
 		comments := GetComments(video.ID)
 		CommentsMap[video.ID] = comments
@@ -47,11 +47,5 @@ func initVideos() {
 		VideosBuffer[video.ID] = i
 		DemoVideos = append(DemoVideos, vs)
 	}
-	fmt.Println("Num of videos: ", len(DemoVideos))
-}
-
-var DemoUser = User{
-	ID:       1,
-	Name:     "TestUser",
-	IsFollow: false,
+	// logger.Printf(": Initlize the vidoesList, [len=%d]", len(DemoVideos))
 }

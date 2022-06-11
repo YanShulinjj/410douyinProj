@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/mylog"
 	"net/http"
 	"os/exec"
 	"path/filepath"
@@ -34,6 +35,7 @@ func initPublishVideosMap() {
 			UsePublishVideosMap[user.ID] = append([]Video{video}, UsePublishVideosMap[user.ID]...)
 		}
 	}
+	// logger.Printf("Initlize PublishVideosMap[key=user_id, v=videos].\n")
 }
 
 type VideoListResponse struct {
@@ -51,7 +53,6 @@ func Publish(c *gin.Context) {
 	}
 
 	data, err := c.FormFile("data")
-	// fmt.Printf("videos type: %T", data)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -70,11 +71,12 @@ func Publish(c *gin.Context) {
 		})
 		return
 	}
+	mylog.Logger.Printf("Saved the video. [filename = %s].\n", finalName)
 	// 使用 ffmpeg 提取视频第1秒处的帧作为封面
 	cmd := exec.Command("E:/software/ffmpeg/bin/ffmpeg.exe", "-i", saveFile, "-ss", "00:00:01", filepath.Join("./public/", finalName+".jpg"))
 	cmd.Run()
 	// update feed
-	fmt.Println("update feed videos....")
+	mylog.Logger.Printf("Capture the video's cover. [filename = %s].\n", finalName)
 	vs, err := AddVideo(token, finalName)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
@@ -82,7 +84,7 @@ func Publish(c *gin.Context) {
 			StatusMsg:  err.Error(),
 		})
 	}
-	fmt.Println("PUBLIC:", vs.ID)
+	mylog.Logger.Printf("Add the Video to database. [filename = %s].\n", finalName)
 	video := Video{
 		Id:            vs.ID,
 		Author:        user,
@@ -96,7 +98,7 @@ func Publish(c *gin.Context) {
 
 	// 添加到自己发表的列表
 	UsePublishVideosMap[user.ID] = append([]Video{video}, UsePublishVideosMap[user.ID]...)
-
+	mylog.Logger.Printf("Add the Video to aothor's public List. [video_id = %d].\n", vs.ID)
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
 		StatusMsg:  finalName + " uploaded successfully",
@@ -105,9 +107,8 @@ func Publish(c *gin.Context) {
 
 func PublishList(c *gin.Context) {
 	user_id, err := strconv.Atoi(c.Query("user_id"))
-	fmt.Println("USerPublish", UsePublishVideosMap[uint(user_id)])
 	if err != nil {
-		fmt.Println("Get user_id faild! ", err)
+		mylog.Logger.Println("Get Video_id failed!", err)
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "get user_id faile !"})
 	}
 	c.JSON(http.StatusOK, VideoListResponse{

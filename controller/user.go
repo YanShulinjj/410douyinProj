@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/mylog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,24 +26,24 @@ func Register(c *gin.Context) {
 
 	// 如果用户已经存在，输出提示不新创用户
 	if _, exist := checkUserName(username); exist {
+		mylog.Logger.Printf("User:[username=%s] registered failed, user already exist!\n", username)
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
 	} else {
 		// 添加新用户
-		id, _ := AddUserInfo(username, password)
+		user_id, _ := AddUserInfo(username, password)
 		// 更新缓存
-		fmt.Print(DemoVideos)
-		fmt.Println("更新视频！！！")
 		initVideos()
 		initFavorite()
-		fmt.Print(DemoVideos)
+		mylog.Logger.Printf("User:[user_id=%d] registered successfully!\n", user_id)
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},
-			UserId:   id,
+			UserId:   user_id,
 			Token:    username + "_" + password,
 		})
 	}
+
 }
 
 // 用户登陆
@@ -52,21 +53,21 @@ func Login(c *gin.Context) {
 	token := username + "_" + password
 	if user, exist := FindUserInfo(token); exist {
 		// 更新视频和喜欢列表缓存
-		fmt.Print(DemoVideos)
-		fmt.Println("更新视频！！！")
 		initVideos()
 		initFavorite()
-		fmt.Print(DemoVideos)
+		mylog.Logger.Printf("User:[user_id=%d] login in successfully!\n", user.ID)
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},
 			UserId:   user.ID,
 			Token:    token,
 		})
 	} else if _, exist := checkUserName(username); exist {
+		mylog.Logger.Printf("User:[user_name=%s] login in failed,Password not correct!\n", username)
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "Password not correct! "},
 		})
 	} else {
+		mylog.Logger.Printf("User:[user_name=%s] login in failed,No such user!\n", username)
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
 		})

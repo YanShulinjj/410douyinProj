@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/mylog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ func initFavorite() {
 			UserFavoriteListMap[user.Name+"_"+user.Password] = append(UserFavoriteListMap[user.Name+"_"+user.Password], vs)
 		}
 	}
+	mylog.Logger.Printf("Initlize: FavoriteMap[key=user_token,v=videos]\n")
 }
 
 // 根据video_id 转成 Video对象
@@ -67,17 +69,16 @@ func FavoriteAction(c *gin.Context) {
 	token := c.Query("token")
 	video_id_str := c.Query("video_id")
 	vid, err := strconv.Atoi(video_id_str)
+	action_type := c.Query("action_type")
 	if err != nil {
-		fmt.Println("Get video_id faild! ", err)
+		mylog.Logger.Println("Get Video_id failed!", err)
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "Get video_id faild! "})
 	}
 	if user, exist := FindUserInfo(token); exist {
-
-		if DemoVideos[VideosBuffer[uint(vid)]].IsFavorite {
+		if action_type == "2" {
 			DemoVideos[VideosBuffer[uint(vid)]].IsFavorite = false
 			DemoVideos[VideosBuffer[uint(vid)]].FavoriteCount -= 1
 			// 删除
-			fmt.Println("UserID: ", token, "在喜欢VideoID: ", vid)
 			del_idx := -1
 			for _, video := range UserFavoriteListMap[token] {
 				del_idx++
@@ -93,6 +94,7 @@ func FavoriteAction(c *gin.Context) {
 				vids_str := "." + strings.Join(vids, ".")
 				user.LikeVideosID = vids_str
 			}
+			mylog.Logger.Printf("User: [token=%s] canceled like [video_id=%d].\n", token, vid)
 			// 更新到数据库
 			UpdateUser(user)
 			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "从喜欢列表移除！"})
@@ -103,16 +105,18 @@ func FavoriteAction(c *gin.Context) {
 			// 更新Map
 			vs := VID2Video(video_id_str, false)
 			UserFavoriteListMap[token] = append(UserFavoriteListMap[token], vs)
+			mylog.Logger.Printf("User: [token=%s] liked [video_id=%d].\n", token, vid)
 			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "成功加入喜欢列表！"})
 		}
 	} else {
+		mylog.Logger.Printf("User: [token=%s] is not existent!\n", token)
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 	}
 }
 
 func FavoriteList(c *gin.Context) {
 	token := c.Query("token")
-	fmt.Println(UserFavoriteListMap[token])
+	fmt.Println("userflist: ", UserFavoriteListMap[token])
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
