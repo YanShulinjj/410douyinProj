@@ -1,13 +1,15 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
-	"strings"
-	"time"
-
+	"fmt"
+	"github.com/RaymondCode/simple-demo/mylog"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"strings"
+	"time"
 )
 
 type VideoSample struct {
@@ -113,7 +115,13 @@ func FindUserByID(id uint) (User, bool) {
 
 // 更新用户
 func UpdateUser(user User) {
-	db.Model(&user).Updates(user)
+	// 通过发送消息来更新
+	// db.Model(&user).Updates(user)
+	Public(MQmessage{
+		DataType: 0,
+		OpType:   1,
+		Data:     user,
+	})
 }
 
 // 添加用户信息
@@ -165,7 +173,15 @@ func AddComment(token string, video_id uint, content string) (Comment, error) {
 		return Comment{}, result.Error
 	}
 	comments = append(comments, new_comment)
-	db.Model(&video).Update("Comments", comments)
+	video.Comments = &comments
+	// db.Model(&video).Updates(video)
+	// db.Model(&video).Update("Comments", comments)
+	// 发送更新的消息
+	Public(MQmessage{
+		DataType: 2,
+		OpType:   1,
+		Data:     video,
+	})
 
 	return new_comment, nil
 }
@@ -194,7 +210,13 @@ func AddVideo(token string, videoname string) (VideoSample, error) {
 		return VideoSample{}, result.Error
 	}
 	videos = append(videos, new_video)
-	db.Model(&user).Update("Public", videos)
+	// db.Model(&user).Update("Public", videos)
+	// 通过发送消息延迟更新
+	Public(MQmessage{
+		DataType: 0,
+		OpType:   1,
+		Data:     user,
+	})
 	// 再次查找
 	result = db.Where("user_refer = ?", user.ID).Find(&videos)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -226,7 +248,13 @@ func FindUsersVideos(user_id uint) []VideoSample {
 
 // 更新video
 func Update(video Video) {
-	db.Model(&video).Updates(video)
+	// 通过发送消息更新
+	Public(MQmessage{
+		DataType: 2,
+		OpType:   1,
+		Data:     video,
+	})
+	// db.Model(&video).Updates(video)
 }
 
 // 返回video列表
@@ -241,4 +269,119 @@ func GetComments(video_id uint) []Comment {
 	comments := []Comment{}
 	db.Where("video_refer = ? ", video_id).Find(&comments)
 	return comments
+}
+
+/*** 解析消息队列中的消息并执行对应操作 ****/
+/**
+DataType: 0 User, 1 Comment, 2 Video
+OPType:   0 Add,  1  Modify, 2 Delete
+*/
+
+func crudUser(user User, optype uint) error {
+	switch optype {
+	case 0: // Add
+		result := db.Create(&user)
+		if result.Error != nil {
+			mylog.Logger.Printf("Add user [user_id = %d] error, %s\n", user.ID, result.Error)
+			return result.Error
+		}
+	case 1: // modify
+		db.Model(&user).Updates(user)
+	case 2: // delete
+		db.Select(clause.Associations).Delete(&user)
+	default:
+		mylog.Logger.Println("Unknown Optype!")
+	}
+	return nil
+}
+
+func crudComment(comment Comment, optype uint) error {
+	switch optype {
+	case 0: // Add
+		result := db.Create(&comment)
+		if result.Error != nil {
+			mylog.Logger.Printf("Add comment [comment_id = %d] error, %s\n", comment.ID, result.Error)
+			return result.Error
+		}
+	case 1: // modify
+		db.Model(&comment).Updates(comment)
+	case 2: // delete
+		db.Select(clause.Associations).Delete(&comment)
+	default:
+		mylog.Logger.Println("Unknown Optype!")
+	}
+	return nil
+}
+
+func crudVideo(video VideoSample, optype uint) error {
+	switch optype {
+	case 0: // Add
+		result := db.Create(&video)
+		if result.Error != nil {
+			mylog.Logger.Printf("Add video [video_id = %d] error, %s\n", video.ID, result.Error)
+			return result.Error
+		}
+	case 1: // modify
+		db.Model(&video).Updates(video)
+	case 2: // delete
+		db.Select(clause.Associations).Delete(&video)
+	default:
+		mylog.Logger.Println("Unknown Optype!")
+	}
+	return nil
+}
+
+func Interaction(qmessage MQmessage) {
+	// 根据队列中的消息区分出对什么表进行什么操作
+	switch qmessage.DataType {
+	case 0: // User
+		user := User{}
+		arr, err := json.Marshal(qmessage.Data)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = json.Unmarshal(arr, &user)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = crudUser(user, qmessage.OpType)
+		if err != nil {
+			mylog.Logger.Panicf("user[user_id=%d], Op[optype=%d], error!, %s", user.ID, qmessage.OpType, err)
+		}
+	case 1: // Comment
+		comment := Comment{}
+		arr, err := json.Marshal(qmessage.Data)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = json.Unmarshal(arr, &comment)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = crudComment(comment, qmessage.OpType)
+		if err != nil {
+			mylog.Logger.Panicf("comment[comment_id=%d], Op[optype=%d], error!, %s", comment.ID, qmessage.OpType, err)
+		}
+	case 2: // Video
+		video := VideoSample{}
+		arr, err := json.Marshal(qmessage.Data)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = json.Unmarshal(arr, &video)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = crudVideo(video, qmessage.OpType)
+		if err != nil {
+			mylog.Logger.Panicf("video[video_id=%d], Op[optype=%d], error!, %s", video.ID, qmessage.OpType, err)
+		}
+	default:
+	}
 }

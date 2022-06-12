@@ -3,9 +3,8 @@ package controller
 import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/mylog"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type UserLoginResponse struct {

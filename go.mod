@@ -4,6 +4,8 @@ go 1.17
 
 require (
 	github.com/gin-gonic/gin v1.7.7
+	github.com/mitchellh/mapstructure v1.5.0
+	github.com/nsqio/go-nsq v1.1.0
 	gorm.io/driver/mysql v1.3.3
 	gorm.io/gorm v1.23.5
 )
@@ -15,6 +17,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/snappy v0.0.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

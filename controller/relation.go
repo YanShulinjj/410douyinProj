@@ -121,6 +121,8 @@ func RelationAction(c *gin.Context) {
 				follow.FollowerID = uids_str
 			}
 			mylog.Logger.Printf("User:[user_id=%d] canceled following User:[user_id=%d]\n", user.ID, to_user_id)
+			user.FollowCount--
+			follow.FollowerCount--
 			// 写入数据库
 			UpdateUser(user)
 			db.Model(&follow).Update("IsFollow", false)
