@@ -23,6 +23,10 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
+	if VerifyEmailFormat(username) == false {
+		fmt.Println("Please enter the email format!")
+
+	}
 	// 如果用户已经存在，输出提示用户已经存在
 	if _, exist := checkUserName(username); exist {
 		c.JSON(http.StatusOK, UserLoginResponse{

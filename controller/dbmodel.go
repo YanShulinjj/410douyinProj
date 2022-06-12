@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 
@@ -79,6 +80,13 @@ func checkUserName(username string) (User, bool) {
 		return User{}, false
 	}
 	return user, true
+}
+
+//判断账号是否为邮箱格式
+func VerifyEmailFormat(email string) bool {
+	pattern := `\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*` //匹配电子邮箱
+	reg := regexp.MustCompile(pattern)
+	return reg.MatchString(email)
 }
 
 // 获得全部用户的简要信息，用于初始化
