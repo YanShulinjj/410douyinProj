@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/RaymondCode/simple-demo/mylog"
+	"github.com/go-redis/redis"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -12,51 +13,12 @@ import (
 	"time"
 )
 
-type VideoSample struct {
-	ID            uint           `gorm:"primaryKey" json:"id,omitempty"`
-	CreatedAt     time.Time      `json:"created_at,omitempty"`
-	UpdatedAt     time.Time      `json:"created_at,omitempty"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-	PlayUrl       string         `json:"play_url" json:"play_url,omitempty"`
-	CoverUrl      string         `json:"cover_url,omitempty"`
-	FavoriteCount int64          `json:"favorite_count,omitempty"`
-	CommentCount  int64          `json:"comment_count,omitempty"`
-	Comments      *[]Comment     `gorm:"foreignKey:VideoRefer"`
-	IsFavorite    bool           `json:"is_favorite,omitempty"`
-	UserRefer     uint           `json:"author"`
-}
-
-type Comment struct {
-	ID         uint           `gorm:"primaryKey" json:"id,omitempty"`
-	CreatedAt  time.Time      `json:"created_at,omitempty"`
-	UpdatedAt  time.Time      `json:"created_at,omitempty"`
-	DeletedAt  gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-	Content    string         `json:"content,omitempty"`
-	CreateDate string         `json:"create_date,omitempty"`
-	VideoRefer uint           `json:"video_refer,omitempty"`
-	UserId     uint           `json:"user_id,omitempty"`
-}
-
-type User struct {
-	ID            uint           `gorm:"primaryKey" json:"id,omitempty"`
-	CreatedAt     time.Time      `json:"created_at,omitempty"`
-	UpdatedAt     time.Time      `json:"created_at,omitempty"`
-	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-	Name          string         `json:"name,omitempty"`
-	Password      string         `json:"password,omitempty"`
-	FollowCount   int64          `json:"follow_count,omitempty"`
-	FollowerCount int64          `json:"follower_count,omitempty"`
-	FollowID      string         `json:"follow_id,omitempty"`
-	FollowerID    string         `json:"follower_id,omitempty"`
-	IsFollow      bool           `json:"is_follow,omitempty"`
-	LikeVideosID  string         `json:"like_videos,omitempty"`
-	Public        *[]VideoSample `gorm:"foreignKey:UserRefer" json:"video,omitempty"`
-}
-
 var db *gorm.DB
+var Client *redis.Client
 
 func init() {
 	db, _ = ConnectDataBase()
+	Client = ConnectRedis()
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&VideoSample{})
 	db.AutoMigrate(&Comment{})
@@ -64,7 +26,14 @@ func init() {
 
 // 连接数据库
 func ConnectDataBase() (*gorm.DB, error) {
-	dsn := "root:19990221@tcp(127.0.0.1:3306)/golang_mysql?charset=utf8mb4&parseTime=True&loc=Local"
+
+	user := MyConfig.Mysql.User
+	password := MyConfig.Mysql.Password
+	addr := MyConfig.Mysql.Addr
+	port := MyConfig.Mysql.Port
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/golang_mysql?charset=utf8mb4&parseTime=True&loc=Local",
+		user, password, addr, port)
+	// dsn := "root:19990221@tcp(127.0.0.1:3306)/golang_mysql?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("Can't connect DataBase!")
@@ -173,6 +142,7 @@ func AddComment(token string, video_id uint, content string) (Comment, error) {
 		return Comment{}, result.Error
 	}
 	comments = append(comments, new_comment)
+	video.CommentCount++
 	video.Comments = &comments
 	// db.Model(&video).Updates(video)
 	// db.Model(&video).Update("Comments", comments)
@@ -200,8 +170,8 @@ func AddVideo(token string, videoname string) (VideoSample, error) {
 		return VideoSample{}, errors.New("User doesn't exits!")
 	}
 	new_video := VideoSample{
-		PlayUrl:    BaseURL + "static/" + videoname,
-		CoverUrl:   BaseURL + "static/" + videoname + ".jpg",
+		PlayUrl:    MyConfig.BaseURL + "static/" + videoname,
+		CoverUrl:   MyConfig.BaseURL + "static/" + videoname + ".jpg",
 		IsFavorite: false,
 	}
 	videos := []VideoSample{}
@@ -210,19 +180,20 @@ func AddVideo(token string, videoname string) (VideoSample, error) {
 		return VideoSample{}, result.Error
 	}
 	videos = append(videos, new_video)
-	// db.Model(&user).Update("Public", videos)
+	db.Model(&user).Update("Public", videos)
 	// 通过发送消息延迟更新
-	Public(MQmessage{
-		DataType: 0,
-		OpType:   1,
-		Data:     user,
-	})
+	// user.Public = &videos
+	// Public(MQmessage{
+	// 	DataType: 0,
+	// 	OpType:   1,
+	// 	Data:     user,
+	// })
 	// 再次查找
 	result = db.Where("user_refer = ?", user.ID).Find(&videos)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return VideoSample{}, result.Error
 	}
-
+	fmt.Println("Adding videos... ", videos)
 	return videos[len(videos)-1], nil
 }
 

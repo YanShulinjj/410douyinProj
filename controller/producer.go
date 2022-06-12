@@ -26,7 +26,8 @@ type nsqProducer struct {
 var producer *nsqProducer
 
 func init() {
-	strIP1 := "127.0.0.1:4150"
+	// strIP1 := "127.0.0.1:4150"
+	strIP1 := MyConfig.MQ.Producer.Addr + ":" + MyConfig.MQ.Producer.Port
 	producer, _ = initProducer(strIP1)
 }
 
@@ -36,7 +37,8 @@ func Public(message MQmessage) error {
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = producer.Publish("test1", mess_bytes)
+	topic := MyConfig.MQ.Topic
+	err = producer.Publish(topic, mess_bytes)
 	if err != nil {
 		log.Fatal("producer1 public error:", err)
 		return err
@@ -46,7 +48,7 @@ func Public(message MQmessage) error {
 
 // 初始化生产者
 func initProducer(addr string) (*nsqProducer, error) {
-	fmt.Println("init producer address:", addr)
+	// fmt.Println("init producer address:", addr)
 	producer, err := nsq.NewProducer(addr, nsq.NewConfig())
 	if err != nil {
 		return nil, err

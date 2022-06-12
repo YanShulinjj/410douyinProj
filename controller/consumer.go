@@ -8,7 +8,6 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/RaymondCode/simple-demo/mylog"
 	"log"
 	"time"
@@ -17,7 +16,11 @@ import (
 )
 
 func RunComsumer() {
-	err := initConsumer("test1", "test-channel1", "127.0.0.1:4161")
+	topic := MyConfig.MQ.Topic
+	channel := MyConfig.MQ.Channel
+	addr := MyConfig.MQ.Consumer.Addr + ":" + MyConfig.MQ.Consumer.Port
+	// err := initConsumer("test1", "test-channel1", "127.0.0.1:4161")
+	err := initConsumer(topic, channel, addr)
 	if err != nil {
 		log.Fatal("init Consumer error")
 	}
@@ -52,8 +55,8 @@ func initConsumer(topic, channel, addr string) error {
 // 处理消息
 func (nh *nsqHandler) HandleMessage(msg *nsq.Message) error {
 	nh.messagesReceived++
-	fmt.Printf("receive ID:%s,addr:%s,message:%s", msg.ID, msg.NSQDAddress, string(msg.Body))
-	fmt.Println()
+	// fmt.Printf("receive ID:%s,addr:%s,message:%s", msg.ID, msg.NSQDAddress, string(msg.Body))
+	// fmt.Println()
 	qms := MQmessage{}
 	err := json.Unmarshal(msg.Body, &qms)
 	if err != nil {

@@ -6,8 +6,7 @@ import (
 	"strings"
 )
 
-var BaseURL = "http://192.168.137.1:8080/"
-var userSeq uint64
+// var BaseURL = MyConfig.BaseURL
 var DemoVideos = []Video{}
 var VideosBuffer = map[uint]int{}
 var CommentsMap = map[uint][]Comment{}

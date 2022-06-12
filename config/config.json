@@ -1,0 +1,21 @@
+{
+  "mysql_config": {
+    "user": "root",
+    "password": "19990221",
+    "addr": "127.0.0.1",
+    "port": "3306"
+  },
+  "baseURL": "http://192.168.137.1:8080/",
+  "message_queue": {
+    "consumer": {
+      "addr": "127.0.0.1",
+      "port": "4161"
+    },
+    "producer": {
+      "addr": "127.0.0.1",
+      "port": "4150"
+    },
+    "topic": "test1",
+    "channel":"test-channel1"
+  }
+}

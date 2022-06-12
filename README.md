@@ -27,6 +27,8 @@ go build && ./simple-demo
 >
 > *新增 需要安装[NSQ](http://nsq.io/deployment/installing.html)
 
+在config.json文件中设置你的相关配置！！
+
 执行以下命令开启消息队列：
 
 ```bash
