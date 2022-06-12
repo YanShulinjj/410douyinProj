@@ -62,7 +62,7 @@ func init() {
 
 // 连接数据库
 func ConnectDataBase() (*gorm.DB, error) {
-	dsn := "root:19990221@tcp(127.0.0.1:3306)/golang_mysql?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:chun@tcp(127.0.0.1:3306)/golang_mysql?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("Can't connect DataBase!")

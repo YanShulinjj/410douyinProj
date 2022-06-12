@@ -71,7 +71,7 @@ func Publish(c *gin.Context) {
 		return
 	}
 	// 使用 ffmpeg 提取视频第1秒处的帧作为封面
-	cmd := exec.Command("E:/software/ffmpeg/bin/ffmpeg.exe", "-i", saveFile, "-ss", "00:00:01", filepath.Join("./public/", finalName+".jpg"))
+	cmd := exec.Command("/opt/homebrew/bin/ffmpeg", "-i", saveFile, "-ss", "00:00:01", filepath.Join("./public/", finalName+".jpg"))
 	cmd.Run()
 	// update feed
 	fmt.Println("update feed videos....")
