@@ -23,12 +23,13 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	// 如果用户已经存在，输出提示不新创用户
+	// 如果用户已经存在，输出提示用户已经存在
 	if _, exist := checkUserName(username); exist {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
 	} else {
+
 		// 添加新用户
 		id, _ := AddUserInfo(username, password)
 		// 更新缓存
