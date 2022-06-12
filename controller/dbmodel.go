@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dlclark/regexp2"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -87,6 +88,22 @@ func VerifyEmailFormat(email string) bool {
 	pattern := `\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*` //匹配电子邮箱
 	reg := regexp.MustCompile(pattern)
 	return reg.MatchString(email)
+}
+
+// CheckPasswordLever 密码强度必须为字⺟⼤⼩写+数字+符号，6位以上
+func CheckPasswordLever(ps string) bool {
+	if len(ps) < 6 {
+		//return fmt.Errorf("password len is < 7")
+		return false
+	}
+
+	// 配置规则 （最后参数给0）
+	re := regexp2.MustCompile(`^(?=.*?[A-Z])(?=(.*[a-z]){1,})(?=(.*[\d]){1,})(?=(.*[\W]){1,})(?!.*\s).{6,16}$`, 0)
+	if flag, err := re.MatchString(ps); !flag || err != nil {
+		return false
+	}
+
+	return true
 }
 
 // 获得全部用户的简要信息，用于初始化

@@ -24,16 +24,19 @@ func Register(c *gin.Context) {
 	password := c.Query("password")
 
 	if VerifyEmailFormat(username) == false {
-		fmt.Println("Please enter the email format!")
-
-	}
-	// 如果用户已经存在，输出提示用户已经存在
-	if _, exist := checkUserName(username); exist {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: Response{StatusCode: 1, StatusMsg: "Please enter the email format!"},
+		}) //验证邮箱格式是否正确
+	} else if _, exist := checkUserName(username); exist {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
+		// 如果用户已经存在，输出提示用户已经存在
+	} else if CheckPasswordLever(password) == false {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: Response{StatusCode: 1, StatusMsg: "You password is not safe,The password must contain at least six characters of uppercase and lowercase letters, digits and symbols"},
+		}) //密码强度必须为字⺟⼤⼩写+数字+符号，6位以上
 	} else {
-
 		// 添加新用户
 		id, _ := AddUserInfo(username, password)
 		// 更新缓存
