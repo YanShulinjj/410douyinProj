@@ -39,33 +39,33 @@ go build main.go router.go
 ```bash
 │  go.mod      
 │  go.sum
-│  main.go            # 程序入口
+│  main.go              # 程序入口
 │  README.md
-│  router.go          # gin路由
+│  router.go            # gin路由
 │  
 ├─config
-│      config.json    # 相关配置文件
+│      config.json      # 相关配置文件
 │      
 ├─controller
-│      comment.go     # 评论业务逻辑
-│      common.go		  # 通用数据结构的定义
-│      config.go		  # 解析配置脚本
-│      consumer.go	  # [消息队列] 消费者，定义处理消息的业务逻辑
-│      dbmodel.go		  # [MySQL] 对mysql的crud
-│      demo_data.go   # 得到视频流
-│      favorite.go		# 点赞/取消点赞
-│      feed.go			  # 将视频流发给前端
-│      producer.go		# [消息队列] 生产者，定义发送消息的类型
-│      publish.go		  # 发布视频业务逻辑
-│      redis.go			  # [Redis] 缓存一些map数据
-│      relation.go		# 关注/取消关注
-│      user.go			  # 用户注册/登陆
+│      comment.go       # 评论业务逻辑
+│      common.go        # 通用数据结构的定义
+│      config.go        # 解析配置脚本
+│      consumer.go      # [消息队列] 消费者，定义处理消息的业务逻辑
+│      dbmodel.go       # [MySQL] 对mysql的crud
+│      demo_data.go     # 得到视频流
+│      favorite.go      # 点赞/取消点赞
+│      feed.go          # 将视频流发给前端
+│      producer.go      # [消息队列] 生产者，定义发送消息的类型
+│      publish.go       # 发布视频业务逻辑
+│      redis.go         # [Redis] 缓存一些map数据
+│      relation.go      # 关注/取消关注
+│      user.go          # 用户注册/登陆
 │      
 ├─mylog
-│      a.log          # 日志文件
-│      logger.go      # 配置一个日志对象
+│      a.log            # 日志文件
+│      logger.go        # 配置一个日志对象
 │      
-└─public              # 保存上传的视频以及封面
+└─public                # 保存上传的视频以及封面
 
 ```
 
