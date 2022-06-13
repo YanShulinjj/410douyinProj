@@ -22,26 +22,34 @@ type UserResponse struct {
 func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
+   if  VerifyEmailFormat(username) {
+	   // 如果用户已经存在，输出提示不新建用户
+	   if _, exist := checkUserName(username); exist {
+		   mylog.Logger.Printf("User:[username=%s] registered failed, user already exist!\n", username)
+		   c.JSON(http.StatusOK, UserLoginResponse{
+			   Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
+		   })
+	   } else {
 
-	// 如果用户已经存在，输出提示不新创用户
-	if _, exist := checkUserName(username); exist {
-		mylog.Logger.Printf("User:[username=%s] registered failed, user already exist!\n", username)
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
-		})
-	} else {
-		// 添加新用户
-		user_id, _ := AddUserInfo(username, password)
-		// 更新缓存
-		initVideos()
-		initFavorite()
-		mylog.Logger.Printf("User:[user_id=%d] registered successfully!\n", user_id)
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 0},
-			UserId:   user_id,
-			Token:    username + "_" + password,
-		})
-	}
+		   // 添加新用户
+		   user_id, _ := AddUserInfo(username, password)
+		   // 更新缓存
+		   initVideos()
+		   initFavorite()
+		   mylog.Logger.Printf("User:[user_id=%d] registered successfully!\n", user_id)
+		   c.JSON(http.StatusOK, UserLoginResponse{
+			   Response: Response{StatusCode: 0},
+			   UserId:   user_id,
+			   Token:    username + "_" + password,
+		   })
+	   }
+   }else {
+	   c.JSON(http.StatusOK, UserLoginResponse{
+		   Response: Response{StatusCode: 1, StatusMsg: "User name does not conform to mailbox format"},
+	   })
+
+   }
+
 
 }
 
@@ -74,6 +82,7 @@ func Login(c *gin.Context) {
 }
 
 // 查找用户
+
 func UserInfo(c *gin.Context) {
 	token := c.Query("token")
 	// 首先根据token查找到用户ID

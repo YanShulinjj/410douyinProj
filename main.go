@@ -7,13 +7,13 @@ import (
 )
 
 func main() {
-	fmt.Println("Running this...")
+	// 启动一个消费者进程
 	go func() {
 		controller.RunComsumer()
 	}()
 	r := gin.Default()
 
-	initRouter(r)
+	InitRouter(r)
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
